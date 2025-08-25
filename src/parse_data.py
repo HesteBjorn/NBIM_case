@@ -5,10 +5,10 @@ import json
 # ---------------------------
 # Basic helpers (simple)
 # ---------------------------
-def parse_date(val):
-    if pd.isna(val):
+def parse_date(date_field):
+    if pd.isna(date_field):
         return None
-    s = str(val).strip()
+    s = str(date_field).strip()
     if not s:
         return None
     for fmt in ("%d.%m.%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"):
@@ -18,21 +18,21 @@ def parse_date(val):
             continue
     return s  # leave as-is if unknown format
 
-def to_decimal(x):
-    if pd.isna(x):
+def to_decimal(number_field):
+    if pd.isna(number_field):
         return None
     try:
-        return float(str(x).replace(" ", "").replace(",", ""))
+        return float(str(number_field).replace(" ", "").replace(",", ""))
     except Exception:
         try:
-            return float(x)
+            return float(number_field)
         except Exception:
             return None
 
-def pick_first_nonnull(vals):
-    for v in vals:
-        if v is not None and str(v).lower() not in ("nan", "none", ""):
-            return v
+def pick_first_nonnull(values):
+    for value in values:
+        if value is not None and str(value).lower() not in ("nan", "none", ""):
+            return value
     return None
 
 # ---------------------------
@@ -183,68 +183,68 @@ def parse_data(custody_raw: pd.DataFrame, nbim_raw: pd.DataFrame):
 
     events = {}
 
-    for _, r in facts.iterrows():
-        ekey = r["coac_event_key"]
-        if pd.isna(ekey):
+    for _, event_row in facts.iterrows():
+        event_key = event_row["coac_event_key"]
+        if pd.isna(event_key):
             continue  # skip lines with no event key
 
-        acct = r["account_id"]
-        acct_key = "_NO_ACCOUNT_" if acct is None else str(acct)
-        side = r["source"]
+        account_id = event_row["account_id"]
+        account_key = "_NO_ACCOUNT_" if account_id is None else str(account_id)
+        side = event_row["source"]
 
-        if ekey not in events:
-            events[ekey] = {
-                "coac_event_key": ekey,
-                "isin": r.get("isin"),
-                "ex_date": r.get("ex_date"),
-                "pay_date": r.get("pay_date"),
+        if event_key not in events:
+            events[event_key] = {
+                "coac_event_key": event_key,
+                "isin": event_row.get("isin"),
+                "ex_date": event_row.get("ex_date"),
+                "pay_date": event_row.get("pay_date"),
                 "accounts": {}
             }
-        ev = events[ekey]
+        event = events[event_key]
 
         # fill missing event-level fields opportunistically
-        ev["isin"] = pick_first_nonnull([ev.get("isin"), r.get("isin")])
-        ev["ex_date"] = pick_first_nonnull([ev.get("ex_date"), r.get("ex_date")])
-        ev["pay_date"] = pick_first_nonnull([ev.get("pay_date"), r.get("pay_date")])
+        event["isin"] = pick_first_nonnull([event.get("isin"), event_row.get("isin")])
+        event["ex_date"] = pick_first_nonnull([event.get("ex_date"), event_row.get("ex_date")])
+        event["pay_date"] = pick_first_nonnull([event.get("pay_date"), event_row.get("pay_date")])
 
-        if acct_key not in ev["accounts"]:
-            ev["accounts"][acct_key] = {
+        if account_key not in event["accounts"]:
+            event["accounts"][account_key] = {
                 "NBIM": {"entries": [], "summary": {}},
                 "Custody": {"entries": [], "summary": {}},
             }
 
         entry = {
-            "row_id": int(r.get("source_row")) if r.get("source_row") is not None and pd.notna(r.get("source_row")) else None,
-            "isin": r.get("isin"),
-            "sedol": r.get("sedol"),
-            "ex_date": r.get("ex_date"),
-            "pay_date": r.get("pay_date"),
-            "currency": r.get("currency"),
-            "settlement_currency": r.get("settlement_currency"),
-            "custodian": r.get("custodian"),
-            "company_name": r.get("company_name"),
-            "dividend_rate": r.get("dividend_rate"),
-            "gross_amount": r.get("gross_amount"),
-            "net_amount": r.get("net_amount"),
-            "settlement_net_amount": r.get("settlement_net_amount"),
-            "withholding_tax": r.get("withholding_tax"),
-            "withholding_rate": r.get("withholding_rate"),
-            "total_tax_rate": r.get("total_tax_rate"),
-            "quantity": r.get("quantity"),
+            "row_id": int(event_row.get("source_row")) if event_row.get("source_row") is not None and pd.notna(event_row.get("source_row")) else None,
+            "isin": event_row.get("isin"),
+            "sedol": event_row.get("sedol"),
+            "ex_date": event_row.get("ex_date"),
+            "pay_date": event_row.get("pay_date"),
+            "currency": event_row.get("currency"),
+            "settlement_currency": event_row.get("settlement_currency"),
+            "custodian": event_row.get("custodian"),
+            "company_name": event_row.get("company_name"),
+            "dividend_rate": event_row.get("dividend_rate"),
+            "gross_amount": event_row.get("gross_amount"),
+            "net_amount": event_row.get("net_amount"),
+            "settlement_net_amount": event_row.get("settlement_net_amount"),
+            "withholding_tax": event_row.get("withholding_tax"),
+            "withholding_rate": event_row.get("withholding_rate"),
+            "total_tax_rate": event_row.get("total_tax_rate"),
+            "quantity": event_row.get("quantity"),
         }
 
-        ev["accounts"][acct_key][side]["entries"].append(entry)
+        event["accounts"][account_key][side]["entries"].append(entry)
 
     # very light summaries (optional; keep it simple)
     def sum_safe(values):
         vals = [v for v in values if v is not None]
         return float(sum(vals)) if vals else None
 
-    for ev in events.values():
-        for acct_key, acct in ev["accounts"].items():
+    for event in events.values():
+        for account_key, account_id in event["accounts"].items():
             for side in ("NBIM", "Custody"):
-                entries = acct[side]["entries"]
-                acct[side]["summary"] = {
+                entries = account_id[side]["entries"]
+                account_id[side]["summary"] = {
                     "gross_amount_sum": sum_safe([e["gross_amount"] for e in entries]),
                     "net_amount_sum": sum_safe([e["net_amount"] for e in entries]),
                     "withholding_tax_sum": sum_safe([e["withholding_tax"] for e in entries]),
