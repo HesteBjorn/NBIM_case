@@ -56,10 +56,15 @@ def normalize_nbim(df: pd.DataFrame) -> pd.DataFrame:
         "pay_date": df["PAYMENT_DATE"].apply(parse_date) if "PAYMENT_DATE" in df.columns else None,
         "account_id": df.get("BANK_ACCOUNT"),
         "currency": df.get("QUOTATION_CURRENCY"),
+        "settlement_currency": df.get("SETTLEMENT_CURRENCY"),
+        "custodian": df.get("CUSTODIAN"),
+        "company_name": df.get("ORGANISATION_NAME"),
         "gross_amount": df["GROSS_AMOUNT_QUOTATION"].apply(to_decimal) if "GROSS_AMOUNT_QUOTATION" in df.columns else None,
         "net_amount": df["NET_AMOUNT_QUOTATION"].apply(to_decimal) if "NET_AMOUNT_QUOTATION" in df.columns else None,
         "withholding_tax": df["WTHTAX_COST_QUOTATION"].apply(to_decimal) if "WTHTAX_COST_QUOTATION" in df.columns else None,
         "withholding_rate": df["WTHTAX_RATE"].apply(to_decimal) if "WTHTAX_RATE" in df.columns else None,
+        "total_tax_rate": df["TOTAL_TAX_RATE"].apply(to_decimal) if "TOTAL_TAX_RATE" in df.columns else None,
+        "settlement_net_amount": df["NET_AMOUNT_SETTLEMENT"].apply(to_decimal) if "NET_AMOUNT_SETTLEMENT" in df.columns else None,
         # fx_rate represents different concepts in NBIM vs Custody - excluded from comparison
         "quantity": df["NOMINAL_BASIS"].apply(to_decimal) if "NOMINAL_BASIS" in df.columns else None
     })
@@ -82,10 +87,15 @@ def normalize_custody(df: pd.DataFrame) -> pd.DataFrame:
         "pay_date": df["PAY_DATE"].apply(parse_date) if "PAY_DATE" in df.columns else (df["EVENT_PAYMENT_DATE"].apply(parse_date) if "EVENT_PAYMENT_DATE" in df.columns else None),
         "account_id": df.get("BANK_ACCOUNTS"),
         "currency": df.get("CURRENCIES"),
+        "settlement_currency": df.get("SETTLED_CURRENCY"),
+        "custodian": df.get("CUSTODIAN"),
+        "company_name": None,  # Not available in Custody
         "gross_amount": df["GROSS_AMOUNT"].apply(to_decimal) if "GROSS_AMOUNT" in df.columns else None,
         "net_amount": df["NET_AMOUNT_QC"].apply(to_decimal) if "NET_AMOUNT_QC" in df.columns else None,
+        "settlement_net_amount": df["NET_AMOUNT_SC"].apply(to_decimal) if "NET_AMOUNT_SC" in df.columns else None,
         "withholding_tax": df["TAX"].apply(to_decimal) if "TAX" in df.columns else None,
         "withholding_rate": df["TAX_RATE"].apply(to_decimal) if "TAX_RATE" in df.columns else None,
+        "total_tax_rate": None,  # Not available in Custody
         # fx_rate represents different concepts in NBIM vs Custody - excluded from comparison
         "quantity": df["HOLDING_QUANTITY"].apply(to_decimal) if "HOLDING_QUANTITY" in df.columns else None
     })
@@ -101,7 +111,8 @@ def add_mismatch_analysis(events):
     # Fields to compare between NBIM and Custody entries
     comparable_fields = [
         'isin', 'sedol', 'ex_date', 'pay_date', 'currency', 
-        'dividend_rate', 'gross_amount', 'net_amount', 'withholding_tax', 
+        'settlement_currency', 'custodian', 'dividend_rate', 'gross_amount', 
+        'net_amount', 'settlement_net_amount', 'withholding_tax', 
         'withholding_rate', 'quantity'
     ]
     
@@ -209,11 +220,16 @@ def parse_data(custody_raw: pd.DataFrame, nbim_raw: pd.DataFrame):
             "ex_date": r.get("ex_date"),
             "pay_date": r.get("pay_date"),
             "currency": r.get("currency"),
+            "settlement_currency": r.get("settlement_currency"),
+            "custodian": r.get("custodian"),
+            "company_name": r.get("company_name"),
             "dividend_rate": r.get("dividend_rate"),
             "gross_amount": r.get("gross_amount"),
             "net_amount": r.get("net_amount"),
+            "settlement_net_amount": r.get("settlement_net_amount"),
             "withholding_tax": r.get("withholding_tax"),
             "withholding_rate": r.get("withholding_rate"),
+            "total_tax_rate": r.get("total_tax_rate"),
             "quantity": r.get("quantity"),
         }
 
