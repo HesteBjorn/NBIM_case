@@ -41,6 +41,9 @@ def pick_first_nonnull(values):
 def normalize_nbim(df: pd.DataFrame) -> pd.DataFrame:
     """
     Convert NBIM data to a normalized format with same field names as Custody.
+    
+    Note: Includes fields that may not exist in Custody for root cause analysis.
+    These context fields help explain WHY comparable fields might differ between systems.
     """
     df = df.reset_index().rename(columns={"index": "source_row"})
     return pd.DataFrame({
@@ -65,13 +68,35 @@ def normalize_nbim(df: pd.DataFrame) -> pd.DataFrame:
         "withholding_rate": df["WTHTAX_RATE"].apply(to_decimal) if "WTHTAX_RATE" in df.columns else None,
         "total_tax_rate": df["TOTAL_TAX_RATE"].apply(to_decimal) if "TOTAL_TAX_RATE" in df.columns else None,
         "settlement_net_amount": df["NET_AMOUNT_SETTLEMENT"].apply(to_decimal) if "NET_AMOUNT_SETTLEMENT" in df.columns else None,
-        # fx_rate represents different concepts in NBIM vs Custody - excluded from comparison
-        "quantity": df["NOMINAL_BASIS"].apply(to_decimal) if "NOMINAL_BASIS" in df.columns else None
+        # NBIM-specific fields for comprehensive analysis
+        "local_tax": df["LOCALTAX_COST_QUOTATION"].apply(to_decimal) if "LOCALTAX_COST_QUOTATION" in df.columns else None,
+        "local_tax_settlement": df["LOCALTAX_COST_SETTLEMENT"].apply(to_decimal) if "LOCALTAX_COST_SETTLEMENT" in df.columns else None,
+        "portfolio_gross_amount": df["GROSS_AMOUNT_PORTFOLIO"].apply(to_decimal) if "GROSS_AMOUNT_PORTFOLIO" in df.columns else None,
+        "portfolio_net_amount": df["NET_AMOUNT_PORTFOLIO"].apply(to_decimal) if "NET_AMOUNT_PORTFOLIO" in df.columns else None,
+        "portfolio_withholding_tax": df["WTHTAX_COST_PORTFOLIO"].apply(to_decimal) if "WTHTAX_COST_PORTFOLIO" in df.columns else None,
+        "fx_rate_to_portfolio": df["AVG_FX_RATE_QUOTATION_TO_PORTFOLIO"].apply(to_decimal) if "AVG_FX_RATE_QUOTATION_TO_PORTFOLIO" in df.columns else None,
+        "instrument_description": df.get("INSTRUMENT_DESCRIPTION"),
+        "organisation_name": df.get("ORGANISATION_NAME"),
+        "restitution_rate": df["RESTITUTION_RATE"].apply(to_decimal) if "RESTITUTION_RATE" in df.columns else None,
+        # Position fields
+        "quantity": df["NOMINAL_BASIS"].apply(to_decimal) if "NOMINAL_BASIS" in df.columns else None,
+        "holding_quantity": None,  # Not available in NBIM
+        "loan_quantity": None,     # Not available in NBIM
+        "lending_percentage": None, # Not available in NBIM
+        # FX and cross-currency fields
+        "fx_rate": df["AVG_FX_RATE_QUOTATION_TO_PORTFOLIO"].apply(to_decimal) if "AVG_FX_RATE_QUOTATION_TO_PORTFOLIO" in df.columns else None,
+        "is_cross_currency_reversal": None,  # Not available in NBIM
+        # Restitution fields
+        "restitution_payment": None,  # Not available in NBIM
+        "restitution_amount": None    # Not available in NBIM
     })
 
 def normalize_custody(df: pd.DataFrame) -> pd.DataFrame:
     """
     Convert Custody data to a normalized format with same field names as NBIM.
+    
+    Note: Includes fields that may not exist in NBIM for root cause analysis.
+    These context fields help explain WHY comparable fields might differ between systems.
     """
     df = df.reset_index().rename(columns={"index": "source_row"})
     return pd.DataFrame({
@@ -80,7 +105,7 @@ def normalize_custody(df: pd.DataFrame) -> pd.DataFrame:
         "coac_event_key": df.get("COAC_EVENT_KEY"),
         "isin": df.get("ISIN"),
         "sedol": df.get("SEDOL"),
-        "ticker": None,
+        "ticker": None,  # Not available in Custody
         "dividend_rate": df["DIV_RATE"].apply(to_decimal) if "DIV_RATE" in df.columns else None,
         "ex_date": df["EX_DATE"].apply(parse_date) if "EX_DATE" in df.columns else (df["EVENT_EX_DATE"].apply(parse_date) if "EVENT_EX_DATE" in df.columns else None),
         # record_date not available in NBIM - excluded from comparison
@@ -96,8 +121,27 @@ def normalize_custody(df: pd.DataFrame) -> pd.DataFrame:
         "withholding_tax": df["TAX"].apply(to_decimal) if "TAX" in df.columns else None,
         "withholding_rate": df["TAX_RATE"].apply(to_decimal) if "TAX_RATE" in df.columns else None,
         "total_tax_rate": None,  # Not available in Custody
-        # fx_rate represents different concepts in NBIM vs Custody - excluded from comparison
-        "quantity": df["HOLDING_QUANTITY"].apply(to_decimal) if "HOLDING_QUANTITY" in df.columns else None
+        # Custody-specific fields for comprehensive analysis
+        "local_tax": None,  # Not available in Custody
+        "local_tax_settlement": None,  # Not available in Custody
+        "portfolio_gross_amount": None,  # Not available in Custody
+        "portfolio_net_amount": None,  # Not available in Custody
+        "portfolio_withholding_tax": None,  # Not available in Custody
+        "fx_rate_to_portfolio": None,  # Not available in Custody
+        "instrument_description": None,  # Not available in Custody
+        "organisation_name": None,  # Not available in Custody
+        "restitution_rate": None,  # Not available in Custody
+        # Position fields - CRITICAL FIX: Use NOMINAL_BASIS for primary quantity
+        "quantity": df["NOMINAL_BASIS"].apply(to_decimal) if "NOMINAL_BASIS" in df.columns else None,
+        "holding_quantity": df["HOLDING_QUANTITY"].apply(to_decimal) if "HOLDING_QUANTITY" in df.columns else None,
+        "loan_quantity": df["LOAN_QUANTITY"].apply(to_decimal) if "LOAN_QUANTITY" in df.columns else None,
+        "lending_percentage": df["LENDING_PERCENTAGE"].apply(to_decimal) if "LENDING_PERCENTAGE" in df.columns else None,
+        # FX and cross-currency fields
+        "fx_rate": df["FX_RATE"].apply(to_decimal) if "FX_RATE" in df.columns else None,
+        "is_cross_currency_reversal": df["IS_CROSS_CURRENCY_REVERSAL"] if "IS_CROSS_CURRENCY_REVERSAL" in df.columns else None,
+        # Restitution fields - Critical for Swiss dividend analysis
+        "restitution_payment": df["POSSIBLE_RESTITUTION_PAYMENT"].apply(to_decimal) if "POSSIBLE_RESTITUTION_PAYMENT" in df.columns else None,
+        "restitution_amount": df["POSSIBLE_RESTITUTION_AMOUNT"].apply(to_decimal) if "POSSIBLE_RESTITUTION_AMOUNT" in df.columns else None
     })
 
 # ---------------------------
@@ -105,15 +149,19 @@ def normalize_custody(df: pd.DataFrame) -> pd.DataFrame:
 # ---------------------------
 def add_mismatch_analysis(events):
     """
-    Add mismatch analysis to identify fields that differ between NBIM and Custody entries.
+    Add mismatch analysis to identify comparable fields that differ between NBIM and Custody entries.
     Modifies the events dictionary in-place by adding 'mismatches' field to each account.
+    Only checks fields that should be comparable between systems.
     """
-    # Fields to compare between NBIM and Custody entries
+    # Fields to compare between NBIM and Custody entries (fields that should exist in both)
     comparable_fields = [
-        'isin', 'sedol', 'ex_date', 'pay_date', 'currency', 
-        'settlement_currency', 'custodian', 'dividend_rate', 'gross_amount', 
-        'net_amount', 'settlement_net_amount', 'withholding_tax', 
-        'withholding_rate', 'quantity'
+        # Basic identifiers that should match
+        'isin', 'sedol', 'ex_date', 'pay_date', 'currency', 'settlement_currency', 'custodian',
+        # Core dividend fields that should be comparable
+        'dividend_rate', 'gross_amount', 'net_amount', 'settlement_net_amount', 
+        'withholding_tax', 'withholding_rate',
+        # Position - using primary quantity field
+        'quantity'
     ]
     
     def values_are_different(val1, val2):
@@ -129,21 +177,11 @@ def add_mismatch_analysis(events):
     
     for event in events.values():
         for account_key, account_data in event["accounts"].items():
-            nbim_entries = account_data["NBIM"]["entries"]
-            custody_entries = account_data["Custody"]["entries"]
+            nbim_entry = account_data["NBIM"]
+            custody_entry = account_data["Custody"]
             
-            # Initialize mismatches
-            account_data["mismatches"] = []
-            
-            # Compare entries (assuming 1:1 mapping for now, but could be extended)
-            if nbim_entries and custody_entries:
-                # For simplicity, compare first entries of each type
-                # This could be extended to handle multiple entries per side
-                nbim_entry = nbim_entries[0]
-                custody_entry = custody_entries[0]
-                
+            if nbim_entry and custody_entry:
                 mismatched_fields = []
-                
                 for field in comparable_fields:
                     nbim_val = nbim_entry.get(field)
                     custody_val = custody_entry.get(field)
@@ -156,12 +194,12 @@ def add_mismatch_analysis(events):
                         })
                 
                 account_data["mismatches"] = mismatched_fields
-            
-            elif nbim_entries and not custody_entries:
+            elif nbim_entry and not custody_entry:
                 account_data["mismatches"] = [{"field": "missing_custody", "nbim_value": "present", "custody_value": "missing"}]
-            
-            elif custody_entries and not nbim_entries:
+            elif custody_entry and not nbim_entry:
                 account_data["mismatches"] = [{"field": "missing_nbim", "nbim_value": "missing", "custody_value": "present"}]
+            else:
+                account_data["mismatches"] = []
 
 # ---------------------------
 # Main parser
@@ -169,9 +207,9 @@ def add_mismatch_analysis(events):
 def parse_data(custody_raw: pd.DataFrame, nbim_raw: pd.DataFrame):
     """
     Main parser function.
-    - Normalizes data
-    - Adds mismatch analysis (fields that are not strictly equal between NBIM and Custody)
-    - Returns a list of events (dict format for easy manipulation and sending to LLM)
+    - Normalizes data from both sources
+    - Adds mismatch analysis for comparable fields only
+    - Returns structured event data with full entry details for analysis
     """
     nbim = normalize_nbim(nbim_raw)
     custody = normalize_custody(custody_raw)
@@ -195,34 +233,31 @@ def parse_data(custody_raw: pd.DataFrame, nbim_raw: pd.DataFrame):
         if event_key not in events:
             events[event_key] = {
                 "coac_event_key": event_key,
-                "isin": event_row.get("isin"),
-                "ex_date": event_row.get("ex_date"),
-                "pay_date": event_row.get("pay_date"),
                 "accounts": {}
             }
         event = events[event_key]
 
-        # fill missing event-level fields opportunistically
-        event["isin"] = pick_first_nonnull([event.get("isin"), event_row.get("isin")])
-        event["ex_date"] = pick_first_nonnull([event.get("ex_date"), event_row.get("ex_date")])
-        event["pay_date"] = pick_first_nonnull([event.get("pay_date"), event_row.get("pay_date")])
-
         if account_key not in event["accounts"]:
             event["accounts"][account_key] = {
-                "NBIM": {"entries": [], "summary": {}},
-                "Custody": {"entries": [], "summary": {}},
+                "NBIM": None,
+                "Custody": None,
             }
 
         entry = {
             "row_id": int(event_row.get("source_row")) if event_row.get("source_row") is not None and pd.notna(event_row.get("source_row")) else None,
+            # Basic identifiers
             "isin": event_row.get("isin"),
             "sedol": event_row.get("sedol"),
+            "ticker": event_row.get("ticker"),
             "ex_date": event_row.get("ex_date"),
             "pay_date": event_row.get("pay_date"),
             "currency": event_row.get("currency"),
             "settlement_currency": event_row.get("settlement_currency"),
             "custodian": event_row.get("custodian"),
             "company_name": event_row.get("company_name"),
+            "instrument_description": event_row.get("instrument_description"),
+            "organisation_name": event_row.get("organisation_name"),
+            # Dividend and amounts
             "dividend_rate": event_row.get("dividend_rate"),
             "gross_amount": event_row.get("gross_amount"),
             "net_amount": event_row.get("net_amount"),
@@ -230,25 +265,29 @@ def parse_data(custody_raw: pd.DataFrame, nbim_raw: pd.DataFrame):
             "withholding_tax": event_row.get("withholding_tax"),
             "withholding_rate": event_row.get("withholding_rate"),
             "total_tax_rate": event_row.get("total_tax_rate"),
+            # Position fields - Critical for reconciliation
             "quantity": event_row.get("quantity"),
+            "holding_quantity": event_row.get("holding_quantity"),
+            "loan_quantity": event_row.get("loan_quantity"),
+            "lending_percentage": event_row.get("lending_percentage"),
+            # FX and cross-currency fields
+            "fx_rate": event_row.get("fx_rate"),
+            "fx_rate_to_portfolio": event_row.get("fx_rate_to_portfolio"),
+            "is_cross_currency_reversal": event_row.get("is_cross_currency_reversal"),
+            # Tax fields - Critical for complex tax analysis
+            "local_tax": event_row.get("local_tax"),
+            "local_tax_settlement": event_row.get("local_tax_settlement"),
+            # Restitution fields - Critical for Swiss dividend analysis
+            "restitution_payment": event_row.get("restitution_payment"),
+            "restitution_amount": event_row.get("restitution_amount"),
+            "restitution_rate": event_row.get("restitution_rate"),
+            # Portfolio fields - For comprehensive analysis
+            "portfolio_gross_amount": event_row.get("portfolio_gross_amount"),
+            "portfolio_net_amount": event_row.get("portfolio_net_amount"),
+            "portfolio_withholding_tax": event_row.get("portfolio_withholding_tax"),
         }
 
-        event["accounts"][account_key][side]["entries"].append(entry)
-
-    # very light summaries (optional; keep it simple)
-    def sum_safe(values):
-        vals = [v for v in values if v is not None]
-        return float(sum(vals)) if vals else None
-
-    for event in events.values():
-        for account_key, account_id in event["accounts"].items():
-            for side in ("NBIM", "Custody"):
-                entries = account_id[side]["entries"]
-                account_id[side]["summary"] = {
-                    "gross_amount_sum": sum_safe([e["gross_amount"] for e in entries]),
-                    "net_amount_sum": sum_safe([e["net_amount"] for e in entries]),
-                    "withholding_tax_sum": sum_safe([e["withholding_tax"] for e in entries]),
-                }
+        event["accounts"][account_key][side] = entry
 
     # Add mismatch analysis
     add_mismatch_analysis(events)
@@ -256,10 +295,11 @@ def parse_data(custody_raw: pd.DataFrame, nbim_raw: pd.DataFrame):
     event_data = list(events.values())
     for event in event_data:
         for account_key, account_values in event['accounts'].items():
-            if account_values['mismatches']:
-                print(f"Mismatch event {event['coac_event_key']}, account {account_key}:")
-                print(account_values['mismatches'])
-                
+            if account_values.get('mismatches'):
+                print(f"Field mismatches for event {event['coac_event_key']}, account {account_key}:")
+                for mismatch in account_values['mismatches']:
+                    print(f"  {mismatch['field']}: {mismatch['nbim_value']} ≠ {mismatch['custody_value']}")
+            
     # Return Python objects (easy to work with, and can be converted to JSON for LLM later)
     return event_data
 
