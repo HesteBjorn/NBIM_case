@@ -84,7 +84,7 @@ def normalize_nbim(df: pd.DataFrame) -> pd.DataFrame:
         "loan_quantity": None,     # Not available in NBIM
         "lending_percentage": None, # Not available in NBIM
         # FX and cross-currency fields
-        "fx_rate": df["AVG_FX_RATE_QUOTATION_TO_PORTFOLIO"].apply(to_decimal) if "AVG_FX_RATE_QUOTATION_TO_PORTFOLIO" in df.columns else None,
+        "fx_rate": None, # Not available in NBIM
         "is_cross_currency_reversal": None,  # Not available in NBIM
         # Restitution fields
         "restitution_payment": None,  # Not available in NBIM

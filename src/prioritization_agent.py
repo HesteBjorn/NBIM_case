@@ -26,7 +26,8 @@ class PrioritizationAgent:
         - Financial impact (amounts, rates, quantities involved)
         - Scope of the issue (single account vs. multiple accounts)
         - Complexity of the mismatch (simple data difference vs. systematic issue)
-        - Make the materiality consice, ideally a number with a unit.
+        - Make the materiality consice, ideally a number with a unit. 
+        - You can have multiple of these numbers with units, but limit to three.
 
         For consequence, consider:
         - Financial impact. Is the materiality going to be a costly problem? Is the issue a data issue, or systematic faliure with tangible consequences?

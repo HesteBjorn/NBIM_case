@@ -120,8 +120,8 @@ def print_final_result(result):
         wrap_field("Materiality", break_event.get('materiality'))
         wrap_field("Priority", break_event.get('priority'))
         wrap_field("Root Cause", break_event.get('brief_summary_of_root_cause'))
-        wrap_field("Evidence", '; '.join(break_event.get('evidence')))
         wrap_field("Consequence", break_event.get('consequence'))
+        wrap_field("Evidence", '; '.join(break_event.get('evidence')))
         print("---")
 
 def main():
