@@ -6,8 +6,6 @@ def main():
     # Read data
     custody_df = pd.read_csv("./data/CUSTODY_Dividend_bookings 1.csv", sep=";")
     nbim_df = pd.read_csv("./data/NBIM_Dividend_bookings 1.csv", sep=";")
-    print(custody_df.head())
-    print(nbim_df.head())
     event_data = parse_data(custody_df, nbim_df)
     print("---Data loaded and parsed---")
 
@@ -17,7 +15,7 @@ def main():
         print(f"---Examining event key: {event_key}---")
         
         manager_agent = ManagerAgent(event)
-        results = manager_agent.run()
+        is_break, classification, brief_summary_of_root_cause = manager_agent.run()
         print(f"---Finished event key: {event_key}---")
 
     # Prioritize events
