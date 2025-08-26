@@ -1,5 +1,6 @@
 import pandas as pd
-from simple_classifier_agent import SimpleClassifierAgent
+from evidence_analyst_agent import EvidenceAnalystAgent
+from conclusion_agent import ConclusionAgent
 from prioritization_agent import PrioritizationAgent
 from parse_data import parse_data
 
@@ -9,29 +10,39 @@ def run_reconciliation_pipeline(custody_df: pd.DataFrame, nbim_df: pd.DataFrame)
 
     breaks = []
 
-    # Classify reconciliation breaks
+    # Classify reconciliation breaks using two-stage analysis
     for event in event_data:
         event_key = event.get("coac_event_key")
         print(f"---Examining event key: {event_key}---")
         
-        manager_agent = SimpleClassifierAgent(event)
-        response_dict = manager_agent.run()
-
-        if response_dict.get("status") == "failed":
-            print(f"Failed to classify event key: {event_key}")
-            print(f"Response: {response_dict}")
+        # Stage 1: Evidence Analysis
+        evidence_agent = EvidenceAnalystAgent(event)
+        evidence_analysis = evidence_agent.run()
+        
+        if evidence_analysis.get("status") == "failed":
+            print(f"Failed to analyze evidence for event key: {event_key}")
+            print(f"Response: {evidence_analysis}")
             continue
-            # OR: throw error and exit program
+        
+        # Stage 2: Conclusion
+        conclusion_agent = ConclusionAgent(event, evidence_analysis)
+        classification_conclusion_dict = conclusion_agent.run()
 
-        if response_dict.get("is_break"):
-            response_dict["coac_event_key"] = event_key
-            response_dict["event"] = event
-            breaks.append(response_dict)
-            print(f"Break detected: {response_dict['classification']}")
+        if classification_conclusion_dict.get("status") == "failed":
+            print(f"Failed to make conclusion for event key: {event_key}")
+            print(f"Response: {classification_conclusion_dict}")
+            continue
+
+        # If the event is a break, add it to the list of breaks
+        if classification_conclusion_dict.get("is_break"):
+            classification_conclusion_dict["coac_event_key"] = event_key
+            classification_conclusion_dict["event"] = event
+            breaks.append(classification_conclusion_dict)
+            print(f"Break detected: {classification_conclusion_dict['classification']}")
         
         print(f"---Finished event key: {event_key}---")
 
-    # Prioritize break events
+    # Stage 3:Prioritize break events
     prioritized_breaks = []
     for break_event in breaks:
         event_key = break_event.get("coac_event_key")
