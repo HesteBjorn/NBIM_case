@@ -48,38 +48,38 @@ def normalize_nbim(df: pd.DataFrame) -> pd.DataFrame:
     df = df.reset_index().rename(columns={"index": "source_row"})
     return pd.DataFrame({
         "source": "NBIM",
-        "source_row": df["source_row"],
+        "source_row": df.get("source_row"),
         "coac_event_key": df.get("COAC_EVENT_KEY"),
         "isin": df.get("ISIN"),
         "sedol": df.get("SEDOL"),
         "ticker": df.get("TICKER"),
-        "dividend_rate": df["DIVIDENDS_PER_SHARE"].apply(to_decimal) if "DIVIDENDS_PER_SHARE" in df.columns else None,
-        "ex_date": df["EXDATE"].apply(parse_date) if "EXDATE" in df.columns else None,
+        "dividend_rate": df.get("DIVIDENDS_PER_SHARE").apply(to_decimal) if "DIVIDENDS_PER_SHARE" in df.columns else None,
+        "ex_date": df.get("EXDATE").apply(parse_date) if "EXDATE" in df.columns else None,
         # record_date not available in NBIM - excluded from comparison
-        "pay_date": df["PAYMENT_DATE"].apply(parse_date) if "PAYMENT_DATE" in df.columns else None,
+        "pay_date": df.get("PAYMENT_DATE").apply(parse_date) if "PAYMENT_DATE" in df.columns else None,
         "account_id": df.get("BANK_ACCOUNT"),
         "currency": df.get("QUOTATION_CURRENCY"),
         "settlement_currency": df.get("SETTLEMENT_CURRENCY"),
         "custodian": df.get("CUSTODIAN"),
         "company_name": df.get("ORGANISATION_NAME"),
-        "gross_amount": df["GROSS_AMOUNT_QUOTATION"].apply(to_decimal) if "GROSS_AMOUNT_QUOTATION" in df.columns else None,
-        "net_amount": df["NET_AMOUNT_QUOTATION"].apply(to_decimal) if "NET_AMOUNT_QUOTATION" in df.columns else None,
-        "withholding_tax": df["WTHTAX_COST_QUOTATION"].apply(to_decimal) if "WTHTAX_COST_QUOTATION" in df.columns else None,
-        "withholding_rate": df["WTHTAX_RATE"].apply(to_decimal) if "WTHTAX_RATE" in df.columns else None,
-        "total_tax_rate": df["TOTAL_TAX_RATE"].apply(to_decimal) if "TOTAL_TAX_RATE" in df.columns else None,
-        "settlement_net_amount": df["NET_AMOUNT_SETTLEMENT"].apply(to_decimal) if "NET_AMOUNT_SETTLEMENT" in df.columns else None,
+        "gross_amount": df.get("GROSS_AMOUNT_QUOTATION").apply(to_decimal) if "GROSS_AMOUNT_QUOTATION" in df.columns else None,
+        "net_amount": df.get("NET_AMOUNT_QUOTATION").apply(to_decimal) if "NET_AMOUNT_QUOTATION" in df.columns else None,
+        "withholding_tax": df.get("WTHTAX_COST_QUOTATION").apply(to_decimal) if "WTHTAX_COST_QUOTATION" in df.columns else None,
+        "withholding_rate": df.get("WTHTAX_RATE").apply(to_decimal) if "WTHTAX_RATE" in df.columns else None,
+        "total_tax_rate": df.get("TOTAL_TAX_RATE").apply(to_decimal) if "TOTAL_TAX_RATE" in df.columns else None,
+        "settlement_net_amount": df.get("NET_AMOUNT_SETTLEMENT").apply(to_decimal) if "NET_AMOUNT_SETTLEMENT" in df.columns else None,
         # NBIM-specific fields for comprehensive analysis
-        "local_tax": df["LOCALTAX_COST_QUOTATION"].apply(to_decimal) if "LOCALTAX_COST_QUOTATION" in df.columns else None,
-        "local_tax_settlement": df["LOCALTAX_COST_SETTLEMENT"].apply(to_decimal) if "LOCALTAX_COST_SETTLEMENT" in df.columns else None,
-        "portfolio_gross_amount": df["GROSS_AMOUNT_PORTFOLIO"].apply(to_decimal) if "GROSS_AMOUNT_PORTFOLIO" in df.columns else None,
-        "portfolio_net_amount": df["NET_AMOUNT_PORTFOLIO"].apply(to_decimal) if "NET_AMOUNT_PORTFOLIO" in df.columns else None,
-        "portfolio_withholding_tax": df["WTHTAX_COST_PORTFOLIO"].apply(to_decimal) if "WTHTAX_COST_PORTFOLIO" in df.columns else None,
-        "fx_rate_to_portfolio": df["AVG_FX_RATE_QUOTATION_TO_PORTFOLIO"].apply(to_decimal) if "AVG_FX_RATE_QUOTATION_TO_PORTFOLIO" in df.columns else None,
+        "local_tax": df.get("LOCALTAX_COST_QUOTATION").apply(to_decimal) if "LOCALTAX_COST_QUOTATION" in df.columns else None,
+        "local_tax_settlement": df.get("LOCALTAX_COST_SETTLEMENT").apply(to_decimal) if "LOCALTAX_COST_SETTLEMENT" in df.columns else None,
+        "portfolio_gross_amount": df.get("GROSS_AMOUNT_PORTFOLIO").apply(to_decimal) if "GROSS_AMOUNT_PORTFOLIO" in df.columns else None,
+        "portfolio_net_amount": df.get("NET_AMOUNT_PORTFOLIO").apply(to_decimal) if "NET_AMOUNT_PORTFOLIO" in df.columns else None,
+        "portfolio_withholding_tax": df.get("WTHTAX_COST_PORTFOLIO").apply(to_decimal) if "WTHTAX_COST_PORTFOLIO" in df.columns else None,
+        "fx_rate_to_portfolio": df.get("AVG_FX_RATE_QUOTATION_TO_PORTFOLIO").apply(to_decimal) if "AVG_FX_RATE_QUOTATION_TO_PORTFOLIO" in df.columns else None,
         "instrument_description": df.get("INSTRUMENT_DESCRIPTION"),
         "organisation_name": df.get("ORGANISATION_NAME"),
-        "restitution_rate": df["RESTITUTION_RATE"].apply(to_decimal) if "RESTITUTION_RATE" in df.columns else None,
+        "restitution_rate": df.get("RESTITUTION_RATE").apply(to_decimal) if "RESTITUTION_RATE" in df.columns else None,
         # Position fields
-        "quantity": df["NOMINAL_BASIS"].apply(to_decimal) if "NOMINAL_BASIS" in df.columns else None,
+        "quantity": df.get("NOMINAL_BASIS").apply(to_decimal) if "NOMINAL_BASIS" in df.columns else None,
         "holding_quantity": None,  # Not available in NBIM
         "loan_quantity": None,     # Not available in NBIM
         "lending_percentage": None, # Not available in NBIM
@@ -101,25 +101,25 @@ def normalize_custody(df: pd.DataFrame) -> pd.DataFrame:
     df = df.reset_index().rename(columns={"index": "source_row"})
     return pd.DataFrame({
         "source": "Custody",
-        "source_row": df["source_row"],
+        "source_row": df.get("source_row"),
         "coac_event_key": df.get("COAC_EVENT_KEY"),
         "isin": df.get("ISIN"),
         "sedol": df.get("SEDOL"),
         "ticker": None,  # Not available in Custody
-        "dividend_rate": df["DIV_RATE"].apply(to_decimal) if "DIV_RATE" in df.columns else None,
-        "ex_date": df["EX_DATE"].apply(parse_date) if "EX_DATE" in df.columns else (df["EVENT_EX_DATE"].apply(parse_date) if "EVENT_EX_DATE" in df.columns else None),
+        "dividend_rate": df.get("DIV_RATE").apply(to_decimal) if "DIV_RATE" in df.columns else None,
+        "ex_date": df.get("EX_DATE").apply(parse_date) if "EX_DATE" in df.columns else None,
         # record_date not available in NBIM - excluded from comparison
-        "pay_date": df["PAY_DATE"].apply(parse_date) if "PAY_DATE" in df.columns else (df["EVENT_PAYMENT_DATE"].apply(parse_date) if "EVENT_PAYMENT_DATE" in df.columns else None),
+        "pay_date": df.get("PAY_DATE").apply(parse_date) if "PAY_DATE" in df.columns else None,
         "account_id": df.get("BANK_ACCOUNTS"),
         "currency": df.get("CURRENCIES"),
         "settlement_currency": df.get("SETTLED_CURRENCY"),
         "custodian": df.get("CUSTODIAN"),
         "company_name": None,  # Not available in Custody
-        "gross_amount": df["GROSS_AMOUNT"].apply(to_decimal) if "GROSS_AMOUNT" in df.columns else None,
-        "net_amount": df["NET_AMOUNT_QC"].apply(to_decimal) if "NET_AMOUNT_QC" in df.columns else None,
-        "settlement_net_amount": df["NET_AMOUNT_SC"].apply(to_decimal) if "NET_AMOUNT_SC" in df.columns else None,
-        "withholding_tax": df["TAX"].apply(to_decimal) if "TAX" in df.columns else None,
-        "withholding_rate": df["TAX_RATE"].apply(to_decimal) if "TAX_RATE" in df.columns else None,
+        "gross_amount": df.get("GROSS_AMOUNT").apply(to_decimal) if "GROSS_AMOUNT" in df.columns else None,
+        "net_amount": df.get("NET_AMOUNT_QC").apply(to_decimal) if "NET_AMOUNT_QC" in df.columns else None,
+        "settlement_net_amount": df.get("NET_AMOUNT_SC").apply(to_decimal) if "NET_AMOUNT_SC" in df.columns else None,
+        "withholding_tax": df.get("TAX").apply(to_decimal) if "TAX" in df.columns else None,
+        "withholding_rate": df.get("TAX_RATE").apply(to_decimal) if "TAX_RATE" in df.columns else None,
         "total_tax_rate": None,  # Not available in Custody
         # Custody-specific fields for comprehensive analysis
         "local_tax": None,  # Not available in Custody
@@ -132,16 +132,16 @@ def normalize_custody(df: pd.DataFrame) -> pd.DataFrame:
         "organisation_name": None,  # Not available in Custody
         "restitution_rate": None,  # Not available in Custody
         # Position fields - CRITICAL FIX: Use NOMINAL_BASIS for primary quantity
-        "quantity": df["NOMINAL_BASIS"].apply(to_decimal) if "NOMINAL_BASIS" in df.columns else None,
-        "holding_quantity": df["HOLDING_QUANTITY"].apply(to_decimal) if "HOLDING_QUANTITY" in df.columns else None,
-        "loan_quantity": df["LOAN_QUANTITY"].apply(to_decimal) if "LOAN_QUANTITY" in df.columns else None,
-        "lending_percentage": df["LENDING_PERCENTAGE"].apply(to_decimal) if "LENDING_PERCENTAGE" in df.columns else None,
+        "quantity": df.get("NOMINAL_BASIS").apply(to_decimal) if "NOMINAL_BASIS" in df.columns else None,
+        "holding_quantity": df.get("HOLDING_QUANTITY").apply(to_decimal) if "HOLDING_QUANTITY" in df.columns else None,
+        "loan_quantity": df.get("LOAN_QUANTITY").apply(to_decimal) if "LOAN_QUANTITY" in df.columns else None,
+        "lending_percentage": df.get("LENDING_PERCENTAGE").apply(to_decimal) if "LENDING_PERCENTAGE" in df.columns else None,
         # FX and cross-currency fields
-        "fx_rate": df["FX_RATE"].apply(to_decimal) if "FX_RATE" in df.columns else None,
-        "is_cross_currency_reversal": df["IS_CROSS_CURRENCY_REVERSAL"] if "IS_CROSS_CURRENCY_REVERSAL" in df.columns else None,
+        "fx_rate": df.get("FX_RATE").apply(to_decimal) if "FX_RATE" in df.columns else None,
+        "is_cross_currency_reversal": df.get("IS_CROSS_CURRENCY_REVERSAL") if "IS_CROSS_CURRENCY_REVERSAL" in df.columns else None,
         # Restitution fields - Critical for Swiss dividend analysis
-        "restitution_payment": df["POSSIBLE_RESTITUTION_PAYMENT"].apply(to_decimal) if "POSSIBLE_RESTITUTION_PAYMENT" in df.columns else None,
-        "restitution_amount": df["POSSIBLE_RESTITUTION_AMOUNT"].apply(to_decimal) if "POSSIBLE_RESTITUTION_AMOUNT" in df.columns else None
+        "restitution_payment": df.get("POSSIBLE_RESTITUTION_PAYMENT").apply(to_decimal) if "POSSIBLE_RESTITUTION_PAYMENT" in df.columns else None,
+        "restitution_amount": df.get("POSSIBLE_RESTITUTION_AMOUNT").apply(to_decimal) if "POSSIBLE_RESTITUTION_AMOUNT" in df.columns else None
     })
 
 # ---------------------------
