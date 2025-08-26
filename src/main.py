@@ -9,16 +9,31 @@ def main():
     event_data = parse_data(custody_df, nbim_df)
     print("---Data loaded and parsed---")
 
+    breaks = []
+
     # Classify reconciliation breaks
     for event in event_data:
         event_key = event.get("coac_event_key")
         print(f"---Examining event key: {event_key}---")
         
         manager_agent = ManagerAgent(event)
-        is_break, classification, brief_summary_of_root_cause = manager_agent.run()
+        response_dict = manager_agent.run()
+
+        if response_dict.get("status") == "failed":
+            print(f"Failed to classify event key: {event_key}")
+            print(f"Response: {response_dict}")
+            continue
+            # OR: throw error and exit program
+
+        if response_dict.get("is_break"):
+            response_dict["coac_event_key"] = event_key
+            response_dict["event"] = event
+            breaks.append(response_dict)
+            print(f"Break detected: {response_dict['classification']}")
+        
         print(f"---Finished event key: {event_key}---")
 
-    # Prioritize events
+    # Prioritize break events
     pass
 
 if __name__ == "__main__":
