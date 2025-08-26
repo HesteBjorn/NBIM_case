@@ -1,5 +1,5 @@
 import pandas as pd
-from manager_agent import ManagerAgent
+from manager_agent import SimpleClassifierAgent
 from prioritization_agent import PrioritizationAgent
 from parse_data import parse_data
 
@@ -14,7 +14,7 @@ def run_reconciliation_pipeline(custody_df: pd.DataFrame, nbim_df: pd.DataFrame)
         event_key = event.get("coac_event_key")
         print(f"---Examining event key: {event_key}---")
         
-        manager_agent = ManagerAgent(event)
+        manager_agent = SimpleClassifierAgent(event)
         response_dict = manager_agent.run()
 
         if response_dict.get("status") == "failed":

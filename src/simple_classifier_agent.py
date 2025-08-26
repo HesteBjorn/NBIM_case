@@ -3,14 +3,14 @@ import anthropic
 import os
 import json
 
-class ManagerAgent:
+class SimpleClassifierAgent:
     def __init__(self, event: dict):
         self.event = event
         self.return_format = """
         {
-            "is_break": "boolean",
+            "is_break": true,
             "classification": "string",
-            "brief_summary_of_root_cause": "string",
+            "brief_summary_of_root_cause": "string"
         }
         """
         self.system_prompt = self._get_system_prompt(self.event, self.return_format)
@@ -23,7 +23,7 @@ class ManagerAgent:
         Do not restate inputs.
         If there are mulitple root causes, return all of them.
 
-        If the data is consistent in actual meaning but naming convensions differ, then it is not a break.
+        If the data is consistent in meaning but naming convensions differ, then it is not a break.
 
         The return format of your output should be JSON matching this pattern:
         {return_format}
