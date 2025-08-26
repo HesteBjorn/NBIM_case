@@ -1,4 +1,7 @@
 import pandas as pd
+import anthropic
+import os
+import json
 
 class ManagerAgent:
     def __init__(self, event: dict):
@@ -10,17 +13,36 @@ class ManagerAgent:
             "brief_summary_of_root_cause": "string",
         }
         """
-        self.system_prompt = self._get_system_prompt(self.return_format)
+        self.system_prompt = self._get_system_prompt(self.event, self.return_format)
 
-    def _get_system_prompt(self, return_format: str):
-        try:
-            with open("src/manager_prompt.txt", "r", encoding="utf-8") as f:
-                system_prompt = f.read()
-        except (OSError, IOError) as e:
-            system_prompt = ""
-        system_prompt += f"\n\nThe return format of your output should be JSON like this: {return_format}"
-        return system_prompt
+
+    def _get_system_prompt(self, event: dict|list, return_format: str):
+        prompt = f"""
+        You are a reconciliation analyst. 
+        Given a single coac event with two data sources NBIM and Custody, output strictly valid JSON matching the provided schema. 
+        Do not restate inputs.
+        If there are mulitple root causes, return all of them.
+
+        The return format of your output should be JSON like this:
+        {return_format}
+
+        The coac event you are reconciling is: 
+        {event}
+        """
+        return prompt
+
 
     def run(self):
-        pass
-        # Explore calculations
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2000,
+            messages=[
+                {"role": "user", "content": self.system_prompt},  # System input.
+                {"role": "assistant", "content": "{"}  # Prefill first token of JSON format.
+            ],
+        )
+        response_text = "{"+response.content[0].text
+        response_dict = json.loads(response_text)
+        print(f"Response for event {self.event['coac_event_key']}: {response_text}")
+        return response_dict.values()
