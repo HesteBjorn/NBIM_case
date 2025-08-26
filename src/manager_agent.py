@@ -18,17 +18,17 @@ class ManagerAgent:
 
     def _get_system_prompt(self, event: dict|list, return_format: str):
         prompt = f"""
-        You are a reconciliation analyst. 
+        You are a reconciliation analyst. You are tasked with identifying issues in reconciliation.
         Given a single coac event with two data sources NBIM and Custody, output strictly valid JSON matching the provided schema. 
         Do not restate inputs.
         If there are mulitple root causes, return all of them.
 
         If the data is consistent in actual meaning but naming convensions differ, then it is not a break.
 
-        The return format of your output should be JSON like this:
+        The return format of your output should be JSON matching this pattern:
         {return_format}
 
-        The coac event you are reconciling is: 
+        The coac event you are reconciling is:
         {event}
         """
         return prompt
