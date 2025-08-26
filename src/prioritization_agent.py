@@ -29,6 +29,7 @@ class PrioritizationAgent:
         - Make the materiality consice, ideally a number with a unit.
 
         For consequence, consider:
+        - Financial impact. Is the materiality going to be a costly problem? Is the issue a data issue, or systematic faliure with tangible consequences?
         - Regulatory/compliance implications
         - Operational impact on downstream processes
         - Risk of issue spreading or recurring

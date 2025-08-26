@@ -27,6 +27,8 @@ class ConclusionAgent:
         - brief_summary_of_root_cause: concise explanation of what caused the issue
 
         Important: If data is consistent in actual meaning but naming conventions differ, this is NOT a break.
+        You should base your classification on whether the evidence and hypothesis is enough to make a conclusion that there has been a break. 
+        Make sure the conclusion is reasonable, and consitutes a real issue.
         Only include the evidence that is relevant to the classification.
         You are the judge that is supposed to make the final call on whether this is a break or not.
 
