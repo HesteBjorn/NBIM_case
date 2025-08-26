@@ -23,6 +23,8 @@ class ManagerAgent:
         Do not restate inputs.
         If there are mulitple root causes, return all of them.
 
+        If the data is consistent in actual meaning but naming convensions differ, then it is not a break.
+
         The return format of your output should be JSON like this:
         {return_format}
 
@@ -33,16 +35,22 @@ class ManagerAgent:
 
 
     def run(self):
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=2000,
-            messages=[
-                {"role": "user", "content": self.system_prompt},  # System input.
-                {"role": "assistant", "content": "{"}  # Prefill first token of JSON format.
-            ],
-        )
-        response_text = "{"+response.content[0].text
-        response_dict = json.loads(response_text)
-        print(f"Response for event {self.event['coac_event_key']}: {response_text}")
-        return response_dict.values()
+        try:
+            client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=2000,
+                messages=[
+                    {"role": "user", "content": self.system_prompt},  # System input.
+                    {"role": "assistant", "content": "{"}  # Prefill first token of JSON format.
+                ],
+            )
+            response_text = "{"+response.content[0].text
+            response_dict = json.loads(response_text)
+            print(f"Response for event {self.event['coac_event_key']}: {response_text}")
+
+        except Exception as e:
+            print(f"Error for event {self.event['coac_event_key']}: {e}")
+            return {"status": "failed", "error": str(e)}
+        
+        return response_dict
