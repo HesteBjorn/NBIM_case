@@ -16,7 +16,7 @@ class EvidenceAnalystAgent:
 
     def _get_system_prompt(self, event: dict, return_format: str):
         prompt = f"""
-        You are a reconciliation analyst in the evidence-gathering phase. Your task is to thoroughly analyze a coac event and identify all potential discrepancies between NBIM and Custody data sources.
+        You are a reconciliation analyst for dividend events, in the evidence-gathering phase. Your task is to thoroughly analyze a coac event and identify all potential discrepancies between NBIM and Custody data sources.
 
         Focus on:
         1. EVIDENCE: List all specific field mismatches you observe (be very specific about field names and values)

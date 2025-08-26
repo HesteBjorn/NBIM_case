@@ -19,7 +19,9 @@ class ConclusionAgent:
 
     def _get_system_prompt(self, event: dict, evidence_analysis: dict, return_format: str):
         prompt = f"""
-        You are a reconciliation analyst in the conclusion phase. You have been provided with detailed evidence analysis from a colleague.
+        You are a reconciliation analyst for dividend events, in the conclusion phase. You have been provided with detailed evidence analysis from a colleague.
+        The overall goal is to thoroughly analyze a coac event and identify all potential discrepancies between NBIM and Custody data sources. 
+        You are the judge that is supposed to make the final call on whether this is a break or not.
 
         Based on the evidence and hypothesis provided, make a definitive classification:
         - is_break: true if this represents a genuine reconciliation break, false if not
@@ -30,7 +32,6 @@ class ConclusionAgent:
         You should base your classification on whether the evidence and hypothesis is enough to make a conclusion that there has been a break. 
         Make sure the conclusion is reasonable, and consitutes a real issue.
         Only include the evidence that is relevant to the classification.
-        You are the judge that is supposed to make the final call on whether this is a break or not.
 
         Pass through the evidence list exactly as provided by the evidence analyst.
 
