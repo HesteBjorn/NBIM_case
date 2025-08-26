@@ -2,10 +2,7 @@ import pandas as pd
 from manager_agent import ManagerAgent
 from parse_data import parse_data
 
-def main():
-    # Read data
-    custody_df = pd.read_csv("./data/CUSTODY_Dividend_bookings 1.csv", sep=";")
-    nbim_df = pd.read_csv("./data/NBIM_Dividend_bookings 1.csv", sep=";")
+def run_reconciliation_pipeline(custody_df: pd.DataFrame, nbim_df: pd.DataFrame):
     event_data = parse_data(custody_df, nbim_df)
     print("---Data loaded and parsed---")
 
@@ -35,6 +32,16 @@ def main():
 
     # Prioritize break events
     pass
+    sorted_breaks = []
+
+    # Return sorted list of breaks with priority field, sorted from high priority to low.
+    return sorted_breaks
+
+def main():
+    # Read data
+    custody_df = pd.read_csv("./data/CUSTODY_Dividend_bookings 1.csv", sep=";")
+    nbim_df = pd.read_csv("./data/NBIM_Dividend_bookings 1.csv", sep=";")
+    result = run_reconciliation_pipeline(custody_df, nbim_df)
 
 if __name__ == "__main__":
     main()
