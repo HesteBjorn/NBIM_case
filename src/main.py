@@ -2,7 +2,60 @@ import pandas as pd
 from evidence_analyst_agent import EvidenceAnalystAgent
 from conclusion_agent import ConclusionAgent
 from prioritization_agent import PrioritizationAgent
+from critic_agent import CriticAgent
 from parse_data import parse_data
+import os
+from dotenv import load_dotenv
+
+def run_evidence_analysis_with_critic(event: dict, event_key: str, max_iterations: int = 5):
+    """Run evidence analysis with critic evaluation loop.
+
+    Args:
+        event: The event data to analyze
+        event_key: Event identifier for logging
+        max_iterations: Maximum critic iterations (default 5)
+
+    Returns:
+        dict: Final evidence analysis or None if failed
+    """
+    critic_feedback = ""
+    evidence_analysis = None
+
+    for iteration in range(max_iterations):
+
+        # Run evidence analysis (with feedback if available)
+        evidence_agent = EvidenceAnalystAgent(event, previous_response=evidence_analysis, critic_feedback=critic_feedback)
+        evidence_analysis = evidence_agent.run()
+
+        if evidence_analysis.get("status") == "failed":
+            print(f"Failed to analyze evidence for event key: {event_key}")
+            print(f"Response: {evidence_analysis}")
+            break  # Break out of iteration loop on failure
+
+        # Run critic evaluation
+        critic_agent = CriticAgent(event, evidence_analysis)
+        critic_response = critic_agent.run()
+
+        if critic_response.get("status") == "failed":
+            print(f"Failed to evaluate evidence for event key: {event_key}")
+            print(f"Response: {critic_response}")
+            break  # Break out of iteration loop on failure
+
+        if critic_response.get("approved", False):
+            print(f"Evidence analysis approved by critic agent after {iteration + 1} iterations")
+            break  # Break out of iteration loop on approval
+
+        # Get feedback for next iteration
+        critic_feedback = critic_response.get("feedback_string_to_evidence_analyst_agent", "")
+        if critic_feedback:
+            print(f"Critic feedback received ({len(critic_feedback)} chars), iterating...")
+        else:
+            print("No critic feedback, but not approved - continuing...")
+    else:
+        print(f"Max iterations ({max_iterations}) reached for event {event_key}, proceeding with final analysis")
+
+    return evidence_analysis
+
 
 def run_reconciliation_pipeline(custody_df: pd.DataFrame, nbim_df: pd.DataFrame):
     event_data = parse_data(custody_df, nbim_df)
@@ -15,13 +68,11 @@ def run_reconciliation_pipeline(custody_df: pd.DataFrame, nbim_df: pd.DataFrame)
         event_key = event.get("coac_event_key")
         print(f"---Examining event key: {event_key}---")
         
-        # Stage 1: Evidence Analysis
-        evidence_agent = EvidenceAnalystAgent(event)
-        evidence_analysis = evidence_agent.run()
-        
-        if evidence_analysis.get("status") == "failed":
-            print(f"Failed to analyze evidence for event key: {event_key}")
-            print(f"Response: {evidence_analysis}")
+        # Stage 1: Evidence Analysis with Critic Loop
+        evidence_analysis = run_evidence_analysis_with_critic(event, event_key)
+
+        if not evidence_analysis or evidence_analysis.get("status") == "failed":
+            print(f"Skipping event {event_key} due to evidence analysis failure")
             continue
         
         # Stage 2: Conclusion
@@ -33,7 +84,7 @@ def run_reconciliation_pipeline(custody_df: pd.DataFrame, nbim_df: pd.DataFrame)
             print(f"Response: {classification_conclusion_dict}")
             continue
 
-        # If the event is a break, add it to the list of breaks
+        # If the event is a reconciliation break, add it to the list of breaks
         if classification_conclusion_dict.get("is_break"):
             classification_conclusion_dict["coac_event_key"] = event_key
             classification_conclusion_dict["event"] = event
@@ -125,9 +176,20 @@ def print_final_result(result):
         print("---")
 
 def main():
+    # Load environment variables from .env file in the root directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.join(script_dir, "..")
+    env_path = os.path.join(root_dir, ".env")
+    
+    # Load environment variables from .env file
+    load_dotenv(env_path)
+    
     # Read data
-    custody_df = pd.read_csv("./data/CUSTODY_Dividend_bookings 1.csv", sep=";")
-    nbim_df = pd.read_csv("./data/NBIM_Dividend_bookings 1.csv", sep=";")
+    # Construct path to data folder (one level up from src)
+    data_dir = os.path.join(script_dir, "..", "data")
+    
+    custody_df = pd.read_csv(os.path.join(data_dir, "CUSTODY_Dividend_bookings 1.csv"), sep=";")
+    nbim_df = pd.read_csv(os.path.join(data_dir, "NBIM_Dividend_bookings 1.csv"), sep=";")
     result = run_reconciliation_pipeline(custody_df, nbim_df)
     print_final_result(result)
 

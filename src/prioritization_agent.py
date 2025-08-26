@@ -17,7 +17,7 @@ class PrioritizationAgent:
 
     def _get_system_prompt(self, break_event: dict, return_format: str):
         prompt = f"""
-        You are a reconciliation analyst tasked with prioritizing break events based on their impact and urgency.
+        You are a reconciliation analyst for dividend events, comparing Custody data to internal data from NBIM. You are tasked with prioritizing break events based on their impact and urgency.
 
         Given a reconciliation break event, analyze its materiality, potential consequences, and assign a priority level.
         Output strictly valid JSON matching the provided schema. Do not restate inputs.
