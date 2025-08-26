@@ -64,16 +64,52 @@ def run_reconciliation_pipeline(custody_df: pd.DataFrame, nbim_df: pd.DataFrame)
     # Return sorted list of breaks with priority field, sorted from high priority to low.
     return sorted_breaks
 
+def wrap_field(label, text, indent=4, width=100):
+    """Print a field with proper wrapping and indentation."""
+    if not text:
+        text = "Unknown"
+    text = str(text)
+    
+    # Print first line with label
+    available_width = width - len(label) - 2  # -2 for ": "
+    if len(text) <= available_width:
+        print(f"{' ' * indent}{label}: {text}")
+    else:
+        # Find last space before width limit
+        split_pos = text.rfind(' ', 0, available_width)
+        if split_pos == -1:  # No space found, force break
+            split_pos = available_width
+        print(f"{' ' * indent}{label}: {text[:split_pos]}")
+        text = text[split_pos:].lstrip()
+        
+        # Print continuation lines with proper indentation
+        label_indent = indent + len(label) + 2
+        while text:
+            available_width = width - label_indent
+            if len(text) <= available_width:
+                print(f"{' ' * label_indent}{text}")
+                break
+            split_pos = text.rfind(' ', 0, available_width)
+            if split_pos == -1:
+                split_pos = available_width
+            print(f"{' ' * label_indent}{text[:split_pos]}")
+            text = text[split_pos:].lstrip()
+
 def print_final_result(result):
-    print("--------------------------------------")
+    print("-" * 100)
     print("---Discovered reconciliation breaks---")
+    
+    if not result:
+        print("No breaks detected.")
+        return
+    
     for break_event in result:
-        print(f"Event Key: {break_event.get('coac_event_key')}")
-        print(f"    Classification: {break_event.get('classification')}")
-        print(f"    Materiality: {break_event.get('materiality')}")
-        print(f"    Priority: {break_event.get('priority')}")
-        print(f"    Root Cause: {break_event.get('brief_summary_of_root_cause')}")
-        print(f"    Consequence: {break_event.get('consequence')}")
+        print(f"Event Key: {break_event.get('coac_event_key', 'Unknown')}")
+        wrap_field("Classification", break_event.get('classification'))
+        wrap_field("Materiality", break_event.get('materiality'))
+        wrap_field("Priority", break_event.get('priority'))
+        wrap_field("Root Cause", break_event.get('brief_summary_of_root_cause'))
+        wrap_field("Consequence", break_event.get('consequence'))
         print("---")
 
 def main():
