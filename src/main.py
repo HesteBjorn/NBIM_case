@@ -1,5 +1,5 @@
 import pandas as pd
-from manager_agent import SimpleClassifierAgent
+from simple_classifier_agent import SimpleClassifierAgent
 from prioritization_agent import PrioritizationAgent
 from parse_data import parse_data
 

@@ -8,6 +8,7 @@ class SimpleClassifierAgent:
         self.event = event
         self.return_format = """
         {
+            "evidence": ["string"],
             "is_break": true,
             "classification": "string",
             "brief_summary_of_root_cause": "string"
@@ -22,6 +23,10 @@ class SimpleClassifierAgent:
         Given a single coac event with two data sources NBIM and Custody, output strictly valid JSON matching the provided schema. 
         Do not restate inputs.
         If there are mulitple root causes, return all of them.
+
+        Make sure to properly account for relevant evidence that you can find.
+        Evidence is the name of the fields that are mismatching.
+        Each point of evidence should be very simple.
 
         If the data is consistent in meaning but naming convensions differ, then it is not a break.
 
