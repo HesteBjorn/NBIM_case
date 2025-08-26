@@ -1,5 +1,19 @@
 # NBIM Case: LLM-Powered Dividend Reconciliation System
 
+## How to run script:
+
+Install packages:
+`pip install -r requirements.txt`
+
+Place Anthropic API key in a file named `.env` in the root directory with variable name `ANTHROPIC_API_KEY`. API key can be retrieved from https://console.anthropic.com/settings/keys
+
+
+Run script:
+
+` cd src`
+
+`python main.py`
+
 ## Case Description
 
 ### Background

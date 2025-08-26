@@ -5,6 +5,7 @@ from prioritization_agent import PrioritizationAgent
 from critic_agent import CriticAgent
 from parse_data import parse_data
 import os
+from dotenv import load_dotenv
 
 def run_evidence_analysis_with_critic(event: dict, event_key: str, max_iterations: int = 5):
     """Run evidence analysis with critic evaluation loop.
@@ -175,9 +176,20 @@ def print_final_result(result):
         print("---")
 
 def main():
+    # Load environment variables from .env file in the root directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.join(script_dir, "..")
+    env_path = os.path.join(root_dir, ".env")
+    
+    # Load environment variables from .env file
+    load_dotenv(env_path)
+    
     # Read data
-    custody_df = pd.read_csv("./data/CUSTODY_Dividend_bookings 1.csv", sep=";")
-    nbim_df = pd.read_csv("./data/NBIM_Dividend_bookings 1.csv", sep=";")
+    # Construct path to data folder (one level up from src)
+    data_dir = os.path.join(script_dir, "..", "data")
+    
+    custody_df = pd.read_csv(os.path.join(data_dir, "CUSTODY_Dividend_bookings 1.csv"), sep=";")
+    nbim_df = pd.read_csv(os.path.join(data_dir, "NBIM_Dividend_bookings 1.csv"), sep=";")
     result = run_reconciliation_pipeline(custody_df, nbim_df)
     print_final_result(result)
 
