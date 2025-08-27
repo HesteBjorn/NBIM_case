@@ -1,6 +1,50 @@
 # Documentation
 
-## Agent architecture
+## Agent architecture and Approach
+
+This solution was focused on issue detection and prioritization. Automated remediation (automatically fixing the tables) was left a low priority for the prototype as I assumed this process required more domain knowledge to know which data source to trust and to fix the error, and that the unpredictability of LLMs may cover up the problems and being harder to detect. See section `Possible approaches for automatic remediation` below for how I would approach this under different assumptions.
+
+Step-wise-process of classification and prioritization:
+
+4 agents:
+- EvidenceAnalyst. Scans for mismatches, recieves feedback from critic.
+- Critic. Evaluates EvidenceAnalyst against the underlying data to look for hallucinations or missed details, and gives feedback. This evaluation goes in a loop until the critic is satisfied.
+- Conclusion. Concludes the evidence to a simple "true/false", 
+- Prioritization. First summarizes materiality. Then sets "High", "Medium", "Low" priority to each event.
+
+**Step 1, Rule-based matching of table columns:**  Map corresponding columns to the same name based on pre-defined rules/mappings (assumes we know the table format, which can be found by humans or using LLMs). Add this mismatch-field to the data.
+
+**Step 2, Evidence Analyst Agent and Critic agent loop:**
+Each event is processed individually and sent to an agent with only purpose to gather evidence of mismatching, and create a hypothesis based on this.
+
+**Step 3: CriticAgent evaluates EvidenceAnalyst:** The output from EvidenceAnalyst is sent to a CriticAgent, which provides feedback based on if it finds hallucinations, missed details, or poor structure.
+
+The critic also outputs and approval field. If the critic overall approves the output, we proceed in the process. If not, we go back to **Step 2** and add the feedback to the new EvidenceAnalyst.
+
+**Step 4: ConclusionAgent:** The ConclusionAgent takes the final approved output from the EvidenceAgent and summarizes it down to three fields: "is_break" (true/false), "classification" (A few words), "brief_summary_of_root_cause": (Short summary description).
+
+If the is_break is False, no issues has been found, and the event is taken out of the process. If is_break is True, we proceed in the process to the Prioritization Agent.
+
+
+**Step 5: The PrioritizationAgent:** The prioritization agent first summarizes the Materiality in up to three units. Then it evaluates Financial or Operational consequence. Finally it assigns the event a priority label "High", "Medium" or "Low".
+
+**The final output** is the list output from the Prioritization agent, which is a prioritied list of events categorized as a reconciliation break, with fields for materiality, classification of break-type, short description of issue, and the raw list of evidence.
+
+All "high" and "medium" classifications should raise an alert for human intervention.
+
+Any Remediation process to automatically fix the discrepancy may swiftly be built on top of the architechture after this step.
+
+### Possible approaches for automatic remediation: 
+
+As I did not focus on remediation in this prototype, there are a few approaches I would have taken, based on different assumtions.
+
+- *Assumption:* Custody is the proper provider and treated as ground truth. *Remediation strategy:* Simply map back the missing values from custody to the NBIM database. We have the rule-based mapping in our data-preprocessing already
+- *Assumption:* Human intervention is necessary. *Remediation strategy:* Alert humans with domain knowledge to inspect the issues detected.
+- *Assumption:* LLM's can do this job automatically. *Rematiation Strategy:* Then I assume we need documentation and more information that is either provided in prompts, or document access through tool-calling. This is in order to avoid making wrong calls, by looking at how things should be, and explainations of the domain of the two data sources Custody and NBIM. We can then add more agents to the end of the pipeline to discover what is the most likely truth, and then fix it. I suggest this sequential agent structure for this:
+    - Agent 1: Based on classification, evidence and description of most likely cause from the previous agents, output  explaination of what each data field is likely to come from which source, or what the real value should be such that the tables match. It should be an option to not be able to conclue, which will make Agent 2 alert humans for intervention.
+    - Agent 2: Transfer the Agent 1 output to an exact JSON representation of which field should be changed to what. It should be an option to be inconclusive and followingly alert humans.
+    - Then, through code (or agent with write permission), execute the table update specified in the exact JSON from Agent 2.
+
 
 ## Example prompts
 
@@ -23,8 +67,8 @@ EvidenceAnalystAgent (with critic feedback):
         You have been evaluated by a critic agent. Your previous response was:
         {'evidence': ["custodian field mismatch across all accounts: NBIM shows 'UBS_SWITZERLAND' while Custody shows 'CUST/UBSCH'", 'quantity field mismatch in account 823456790: NBIM shows 15000.0 while Custody shows 30000.0', 'gross_amount field mismatch in account 823456791: NBIM shows 31000.0 while Custody shows 37200.0', 'net_amount field mismatch in account 823456791: NBIM shows 20150.0 while Custody shows 24180.0', 'settlement_net_amount field mismatch in account 823456791: NBIM shows 20150.0 while Custody shows 24180.0', 'withholding_tax field mismatch in account 823456791: NBIM shows 10850.0 while Custody shows 13020.0', 'NBIM data contains populated portfolio conversion fields (fx_rate_to_portfolio: 12.4567, portfolio_gross_amount, portfolio_net_amount, portfolio_withholding_tax) while Custody shows these as nan', 'Custody data contains restitution_payment and restitution_amount fields (6000.0, 4500.0, 4500.0 across accounts) while NBIM shows these as nan or 0.0', 'Custody data shows holding_quantity values (20000.0, 15000.0, 12000.0) while NBIM shows these as nan', 'fx_rate field shows nan in NBIM but 1.0 in Custody across all accounts', 'total_tax_rate shows 35.0 in NBIM but nan in Custody across all accounts'], 'hypothesis': "This coac event exhibits multiple systematic discrepancies suggesting fundamental differences in data processing or source systems between NBIM and Custody. The custodian naming convention difference ('UBS_SWITZERLAND' vs 'CUST/UBSCH') indicates potential system mapping or reference data misalignment, which could be a consistent issue affecting all UBS Switzerland positions. The quantity discrepancy in account 823456790 where Custody shows double the NBIM quantity (30000 vs 15000) could indicate a securities lending scenario where Custody is reporting total entitled quantity while NBIM reports only the held portion, supported by Custody's populated holding_quantity field showing the actual held amount matching NBIM's quantity. The financial amount discrepancies in account 823456791 (gross_amount 37200 vs 31000, resulting in proportional differences in net amounts and withholding tax) suggest either different calculation methodologies or the inclusion of additional dividend components in Custody data. The presence of restitution amounts in Custody data (4500-6000 CHF across accounts) while absent in NBIM could indicate that Custody is reflecting anticipated tax reclaims or treaty benefits that NBIM hasn't yet incorporated, possibly due to different processing timelines or approval workflows for Swiss withholding tax optimization. The portfolio currency conversion fields being populated only in NBIM suggests different reporting requirements, with NBIM maintaining NOK portfolio reporting while Custody focuses on local currency settlement. The fx_rate differences (nan vs 1.0) and total_tax_rate inconsistencies may reflect different system defaults or calculation stages, where Custody uses explicit 1.0 for same-currency transactions while NBIM leaves cross-currency fields unpopulated. These patterns suggest either a timing difference in data processing stages, different interpretations of securities lending impacts on dividend entitlements, or systematic differences in how Swiss dividend tax optimization is handled between the systems."}
 
-        The critic's feedback to address is:
-        • Evidence item claiming 'quantity field mismatch in account 823456790' is incorrect - the data shows NBIM quantity 15000.0 vs Custody quantity 30000.0, which matches your claim, but you failed to note that account 823456791 shows matching quantities (10000.0 in both systems)
+    The critic's feedback to address is:
+    • Evidence item claiming 'quantity field mismatch in account 823456790' is incorrect - the data shows NBIM quantity 15000.0 vs Custody quantity 30000.0, which matches your claim, but you failed to note that account 823456791 shows matching quantities (10000.0 in both systems)
     • Evidence item claiming 'holding_quantity shows (20000.0, 15000.0, 12000.0) while NBIM shows these as nan' contains an error - account 823456791 shows holding_quantity of 12000.0 in Custody vs quantity of 10000.0, not matching as your hypothesis suggests
     • Your hypothesis incorrectly states that 'Custody's populated holding_quantity field showing the actual held amount matching NBIM's quantity' - this is only true for account 823456790, not for 823456791 where holding_quantity (12000.0) exceeds both systems' quantity values
     • You missed documenting the most significant discrepancy: account 823456791 shows identical quantities (10000.0) but different gross amounts, which contradicts the securities lending explanation and suggests a calculation methodology difference

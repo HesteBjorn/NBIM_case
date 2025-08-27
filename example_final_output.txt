@@ -1,0 +1,54 @@
+Discovered reconciliation breaks
+Event Key: 970456789
+    Classification: Dividend Calculation Methodology
+    Materiality: 6,200 CHF gross amount difference, 4,030 CHF net amount difference, 2,000 share
+                quantity discrepancy
+    Priority: High
+    Root Cause: Systems use different quantities for dividend calculations - NBIM uses quantity field
+                while Custody uses holding_quantity field, resulting in material financial amount
+                discrepancies in account 823456791 where NBIM calculated on 10000 shares versus
+                Custody's 12000 dividend-eligible shares
+    Consequence: Systematic calculation methodology failure creating tangible financial discrepancies
+                across dividend payments. Risk of recurring errors in future dividend events due
+                to fundamental system logic differences. Potential compliance issues with
+                incorrect dividend entitlements and tax calculations affecting multiple accounts.
+    Evidence: custodian field mismatch across all accounts: NBIM shows 'UBS_SWITZERLAND' while Custody
+            shows 'CUST/UBSCH'; account 823456789 has NO financial mismatches: all amounts match
+            perfectly (gross_amount=62000.0, net_amount=40300.0, settlement_net_amount=40300.0,
+            withholding_tax=21700.0); quantity mismatch in account 823456790: NBIM   
+            quantity=15000.0, Custody quantity=30000.0, but holding_quantity in Custody=15000.0
+            matches NBIM quantity; financial calculation consistency in account 823456790:
+            despite quantity mismatch, all financial amounts are identical (gross_amount=46500.0,
+            net_amount=30225.0, withholding_tax=16275.0); financial amount mismatches in account
+            823456791: gross_amount (31000.0 vs 37200.0), net_amount (20150.0 vs 24180.0),
+            settlement_net_amount (20150.0 vs 24180.0), withholding_tax (10850.0 vs 13020.0);
+            quantity vs holding_quantity discrepancy in account 823456791: both systems show
+            quantity=10000.0, but NBIM has no holding_quantity while Custody shows   
+            holding_quantity=12000.0; consistent pattern across all Custody records: 
+            holding_quantity appears to be the dividend-eligible amount (20000.0, 15000.0,
+            12000.0) used for financial calculations
+---
+Event Key: 960789012
+    Classification: Tax Treatment Discrepancy
+    Materiality: 180,500 KRW withholding tax difference, 450,050 KRW net amount difference, 2% tax rate
+                discrepancy
+    Priority: Medium
+    Root Cause: Fundamental disagreement on tax treatment between NBIM and Custody systems. NBIM
+                applies 22% withholding rate plus 3% local tax (total 25%), while Custody applies
+                20% withholding rate with no local tax. The 2% rate difference creates a 180,500
+                KRW withholding tax discrepancy and 450,050 KRW net amount difference. This appears
+                related to securities lending treatment where 2,000 shares are on loan, potentially
+                receiving different tax rates, but the systems are accounting for this differently.
+    Consequence: Financial impact of approximately $342 USD in net amount difference creates settlement
+                discrepancies requiring manual intervention. Tax treatment disagreement indicates
+                dividend events, creating ongoing operational burden and reporting inaccuracies.
+    Evidence: pay_date field mismatch: NBIM shows '2025-05-20' while Custody shows '2025-05-25';
+            net_amount field mismatch: NBIM shows 6,769,950.0 while Custody shows 7,220,000.0
+            (difference of 450,050 KRW); settlement_net_amount field mismatch: NBIM shows 5,181.5
+            while Custody shows 5,524.27 (difference of 342.77 USD); withholding_tax field
+            mismatch: NBIM shows 1,985,500.0 while Custody shows 1,805,000.0 (difference of
+            180,500 KRW); withholding_rate field mismatch: NBIM shows 22.0% while Custody shows
+            20.0%; NBIM has local_tax of 269,550.0 KRW (exactly 3% of gross amount:
+            269,550/9,025,000) while Custody shows local_tax as nan; NBIM shows total_tax_rate as
+            25.0% (22% withholding + 3% local tax) while Custody shows nan; Custody shows
+            holding_quantity (23,000.0) and loan_quantity (2,000.0) while NBIM shows both as nan
